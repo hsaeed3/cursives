@@ -15,7 +15,7 @@ import typing_inspect as ti
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
-from ..._cache import cached, make_hashable
+from .._cache import cached, make_hashable
 
 __all__ = [
     "MarkdownSettings",

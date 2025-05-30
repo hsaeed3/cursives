@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
-from cursives.text.formatting.markdown import (
+from cursives.text.markdown import (
     convert_to_markdown,
     convert_function_to_markdown,
     convert_dataclass_to_markdown,

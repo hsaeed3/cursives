@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------
 
 name = "cursives"
-version = "0.0.01"
+version = "0.0.02"
 
 description = """
 Very, VERY opinionated resources to make things pretty in Python. Made for neat folks.

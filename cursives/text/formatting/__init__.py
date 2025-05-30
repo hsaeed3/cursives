@@ -1,3 +1,0 @@
-"""
-✼ cursives.text.formatting
-"""
