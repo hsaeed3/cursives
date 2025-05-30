@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from cursives.text.formatting.markdown import (
     convert_to_markdown,
-    convert_function_to_markdown, 
+    convert_function_to_markdown,
     convert_dataclass_to_markdown,
     convert_pydantic_model_to_markdown,
     convert_object_to_markdown,
@@ -19,16 +19,16 @@ from cursives.text.formatting.markdown import (
 def sample_function(param1: str, param2: int = 5) -> str:
     """
     A sample function for testing.
-    
+
     This function demonstrates parameter handling and return values.
-    
+
     Args:
         param1: A string parameter
         param2: An integer parameter with default value
-        
+
     Returns:
         A formatted string
-        
+
     Raises:
         ValueError: If param1 is empty
     """
@@ -40,6 +40,7 @@ def sample_function(param1: str, param2: int = 5) -> str:
 @dataclass
 class SampleDataclass:
     """A sample dataclass for testing."""
+
     name: str
     age: int = 25
     email: Optional[str] = None
@@ -47,6 +48,7 @@ class SampleDataclass:
 
 class SamplePydanticModel(BaseModel):
     """A sample Pydantic model for testing."""
+
     name: str = Field(description="The user's name")
     age: int = Field(default=25, description="The user's age")
     email: Optional[str] = Field(default=None, description="The user's email address")
@@ -54,7 +56,7 @@ class SamplePydanticModel(BaseModel):
 
 class TestMarkdownModels:
     """Test the new Markdown and MarkdownSection models."""
-    
+
     def test_markdown_section_creation(self):
         """Test MarkdownSection model creation."""
         section = MarkdownSection(
@@ -62,9 +64,9 @@ class TestMarkdownModels:
             content="Test content",
             level="h2",
             section_type="test",
-            metadata={"key": "value"}
+            metadata={"key": "value"},
         )
-        
+
         assert section.heading == "Test Section"
         assert section.content == "Test content"
         assert section.level == "h2"
@@ -78,9 +80,9 @@ class TestMarkdownModels:
             title="Test Title",
             description="Test description",
             sections=[section],
-            metadata={"type": "test"}
+            metadata={"type": "test"},
         )
-        
+
         assert markdown.title == "Test Title"
         assert markdown.description == "Test description"
         assert len(markdown.sections) == 1
@@ -91,9 +93,9 @@ class TestMarkdownModels:
         """Test basic to_string functionality."""
         section = MarkdownSection(heading="Section", content="Content", level="h2")
         markdown = Markdown(title="Test", sections=[section])
-        
+
         result = markdown.to_string()
-        
+
         assert "# Test" in result
         assert "## Section" in result
         assert "Content" in result
@@ -102,29 +104,29 @@ class TestMarkdownModels:
         """Test to_string with bullet formatting."""
         section = MarkdownSection(content="item1: value1", section_type="field")
         markdown = Markdown(title="Test", sections=[section])
-        
+
         result = markdown.to_string(show_bullets=True, bullet_style="-")
-        
+
         assert "- item1: value1" in result
 
     def test_markdown_to_string_title_levels(self):
         """Test different title levels in to_string."""
         markdown = Markdown(title="Test Title")
-        
+
         # Test different title levels
         h1_result = markdown.to_string(title_level="h1")
         assert "# Test Title" in h1_result
-        
+
         h2_result = markdown.to_string(title_level="h2")
         assert "## Test Title" in h2_result
-        
+
         bold_result = markdown.to_string(title_level="bold")
         assert "**Test Title**" in bold_result
 
 
 class TestReturnStringParameter:
     """Test the return_string parameter functionality."""
-    
+
     def test_return_string_false_default(self):
         """Test that return_string=False returns Markdown object by default."""
         result = convert_to_markdown(sample_function)
@@ -142,10 +144,10 @@ class TestReturnStringParameter:
         # Get structured output and convert to string
         structured = convert_to_markdown(sample_function, return_string=False)
         structured_as_string = structured.to_string()
-        
+
         # Get direct string output
         direct_string = convert_to_markdown(sample_function, return_string=True)
-        
+
         # They should be equivalent (allowing for minor formatting differences)
         assert "sample_function" in structured_as_string
         assert "sample_function" in direct_string
@@ -155,11 +157,11 @@ class TestReturnStringParameter:
 
 class TestFunctionConversion:
     """Test function conversion to structured markdown."""
-    
+
     def test_function_basic_structure(self):
         """Test basic function conversion structure."""
         result = convert_function_to_markdown(sample_function)
-        
+
         assert isinstance(result, Markdown)
         assert result.title == "sample_function"
         assert "A sample function for testing" in result.description
@@ -168,7 +170,7 @@ class TestFunctionConversion:
     def test_function_docstring_sections(self):
         """Test that function docstring creates appropriate sections."""
         result = convert_function_to_markdown(sample_function)
-        
+
         # Should have sections for parameters, returns, and raises
         section_headings = [s.heading for s in result.sections if s.heading]
         assert "Parameters" in section_headings
@@ -178,7 +180,7 @@ class TestFunctionConversion:
     def test_function_parameters_section(self):
         """Test function parameters section content."""
         result = convert_function_to_markdown(sample_function)
-        
+
         params_section = next(s for s in result.sections if s.heading == "Parameters")
         assert "param1" in params_section.content
         assert "param2" in params_section.content
@@ -188,10 +190,9 @@ class TestFunctionConversion:
     def test_function_with_settings(self):
         """Test function conversion with various settings."""
         result = convert_function_to_markdown(
-            sample_function, 
-            {"show_docs": False, "override_title": "Custom Title"}
+            sample_function, {"show_docs": False, "override_title": "Custom Title"}
         )
-        
+
         assert result.title == "Custom Title"
         assert not result.description  # docs disabled
         assert len(result.sections) == 0  # no docstring sections
@@ -199,12 +200,12 @@ class TestFunctionConversion:
 
 class TestDataclassConversion:
     """Test dataclass conversion to structured markdown."""
-    
+
     def test_dataclass_basic_structure(self):
         """Test basic dataclass conversion structure."""
         instance = SampleDataclass(name="John", age=30, email="john@example.com")
         result = convert_dataclass_to_markdown(instance)
-        
+
         assert isinstance(result, Markdown)
         assert result.title == "SampleDataclass"
         assert "A sample dataclass for testing" in result.description
@@ -215,14 +216,17 @@ class TestDataclassConversion:
         """Test dataclass field sections."""
         instance = SampleDataclass(name="John")
         result = convert_dataclass_to_markdown(instance)
-        
+
         # Should have sections for each field
-        field_contents = [s.content for s in result.sections if s.section_type == "field"]
+        field_contents = [
+            s.content for s in result.sections if s.section_type == "field"
+        ]
         assert len(field_contents) == 3  # name, age, email
-        
+
         # Check field content includes types and values
-        name_content = next(s.content for s in result.sections 
-                          if s.metadata.get("field_name") == "name")
+        name_content = next(
+            s.content for s in result.sections if s.metadata.get("field_name") == "name"
+        )
         assert "str" in name_content
         assert "'John'" in name_content
 
@@ -230,11 +234,13 @@ class TestDataclassConversion:
         """Test dataclass split mode creates separate field sections."""
         instance = SampleDataclass(name="John")
         result = convert_dataclass_to_markdown(instance, {"split": True})
-        
+
         # Should have separate sections with headings for each field
-        field_sections = [s for s in result.sections if s.section_type == "field" and s.heading]
+        field_sections = [
+            s for s in result.sections if s.section_type == "field" and s.heading
+        ]
         assert len(field_sections) == 3
-        
+
         field_headings = [s.heading for s in field_sections]
         assert "name" in field_headings
         assert "age" in field_headings
@@ -244,20 +250,22 @@ class TestDataclassConversion:
         """Test dataclass natural language mode."""
         instance = SampleDataclass(name="John", age=30)
         result = convert_dataclass_to_markdown(instance, {"as_natural_language": True})
-        
-        nl_section = next(s for s in result.sections if s.section_type == "natural_language")
+
+        nl_section = next(
+            s for s in result.sections if s.section_type == "natural_language"
+        )
         assert "currently set with the following values" in nl_section.content
         assert "Name (A str) is defined as 'John'" in nl_section.content
 
 
 class TestPydanticModelConversion:
     """Test Pydantic model conversion to structured markdown."""
-    
+
     def test_pydantic_basic_structure(self):
         """Test basic Pydantic model conversion structure."""
         instance = SamplePydanticModel(name="Alice", age=28)
         result = convert_pydantic_model_to_markdown(instance)
-        
+
         assert isinstance(result, Markdown)
         assert result.title == "SamplePydanticModel"
         assert "A sample Pydantic model for testing" in result.description
@@ -267,39 +275,49 @@ class TestPydanticModelConversion:
         """Test that Pydantic field descriptions are included."""
         instance = SamplePydanticModel(name="Alice")
         result = convert_pydantic_model_to_markdown(instance, {"split": True})
-        
+
         # Find the name field section
-        name_section = next(s for s in result.sections 
-                          if s.heading == "name" and s.section_type == "field")
+        name_section = next(
+            s
+            for s in result.sections
+            if s.heading == "name" and s.section_type == "field"
+        )
         assert "The user's name" in name_section.content
 
     def test_pydantic_class_vs_instance(self):
         """Test difference between class and instance conversion."""
         class_result = convert_pydantic_model_to_markdown(SamplePydanticModel)
-        instance_result = convert_pydantic_model_to_markdown(SamplePydanticModel(name="Test"))
-        
+        instance_result = convert_pydantic_model_to_markdown(
+            SamplePydanticModel(name="Test")
+        )
+
         assert class_result.metadata["is_class"] == True
         assert instance_result.metadata["is_class"] == False
-        
+
         # Instance should show values, class should not
-        instance_name_content = next(s.content for s in instance_result.sections 
-                                   if s.metadata.get("field_name") == "name")
+        instance_name_content = next(
+            s.content
+            for s in instance_result.sections
+            if s.metadata.get("field_name") == "name"
+        )
         assert "'Test'" in instance_name_content
 
 
 class TestGenericObjectConversion:
     """Test generic object conversion to structured markdown."""
-    
+
     def test_list_conversion(self):
         """Test list object conversion."""
         test_list = [1, 2, "three", 4.0]
         result = convert_object_to_markdown(test_list)
-        
+
         assert isinstance(result, Markdown)
         assert result.title == "list"
         assert result.metadata["type"] == "generic_object"
-        
-        collection_section = next(s for s in result.sections if s.section_type == "collection")
+
+        collection_section = next(
+            s for s in result.sections if s.section_type == "collection"
+        )
         assert "Item 0: 1" in collection_section.content
         assert "Item 2: 'three'" in collection_section.content
 
@@ -307,8 +325,10 @@ class TestGenericObjectConversion:
         """Test dictionary object conversion."""
         test_dict = {"key1": "value1", "key2": 42}
         result = convert_object_to_markdown(test_dict)
-        
-        dict_section = next(s for s in result.sections if s.section_type == "dictionary")
+
+        dict_section = next(
+            s for s in result.sections if s.section_type == "dictionary"
+        )
         assert "key1: 'value1'" in dict_section.content
         assert "key2: 42" in dict_section.content
 
@@ -316,23 +336,28 @@ class TestGenericObjectConversion:
         """Test empty collection handling."""
         empty_list = []
         result = convert_object_to_markdown(empty_list)
-        
-        collection_section = next(s for s in result.sections if s.section_type == "collection")
+
+        collection_section = next(
+            s for s in result.sections if s.section_type == "collection"
+        )
         assert "Empty list" in collection_section.content
         assert collection_section.metadata["length"] == 0
 
 
 class TestSettingsAndOptions:
     """Test various settings and options."""
-    
+
     def test_exclude_fields(self):
         """Test excluding specific fields."""
         instance = SampleDataclass(name="John", age=30, email="john@example.com")
         result = convert_dataclass_to_markdown(instance, {"exclude": ["email"]})
-        
+
         # Should not have email field
-        field_names = [s.metadata.get("field_name") for s in result.sections 
-                      if s.section_type == "field"]
+        field_names = [
+            s.metadata.get("field_name")
+            for s in result.sections
+            if s.section_type == "field"
+        ]
         assert "email" not in field_names
         assert "name" in field_names
         assert "age" in field_names
@@ -346,7 +371,7 @@ class TestSettingsAndOptions:
         """Test hiding type information."""
         instance = SampleDataclass(name="John")
         result = convert_dataclass_to_markdown(instance, {"show_types": False})
-        
+
         # Convert to string to check content
         result_str = result.to_string()
         assert "str" not in result_str  # type should be hidden
@@ -354,7 +379,7 @@ class TestSettingsAndOptions:
     def test_code_block_wrapping(self):
         """Test code block wrapping returns string."""
         result = convert_to_markdown(sample_function, as_code_block=True)
-        
+
         assert isinstance(result, str)
         assert result.startswith("```python")
         assert result.endswith("```")
@@ -364,15 +389,15 @@ class TestSettingsAndOptions:
         result = convert_to_markdown(
             sample_function,
             override_title="Custom Function",
-            override_description="Custom description"
+            override_description="Custom description",
         )
-        
+
         assert result.title == "Custom Function"
 
 
 class TestBackwardCompatibility:
     """Test that the new system maintains backward compatibility."""
-    
+
     def test_string_output_equivalent(self):
         """Test that string output is equivalent to previous behavior."""
         test_objects = [
@@ -380,23 +405,23 @@ class TestBackwardCompatibility:
             SampleDataclass(name="test"),
             SamplePydanticModel(name="test"),
             [1, 2, 3],
-            {"key": "value"}
+            {"key": "value"},
         ]
-        
+
         for obj in test_objects:
             # Get structured result and convert to string
             structured = convert_to_markdown(obj, return_string=False)
             structured_string = structured.to_string()
-            
+
             # Get direct string result
             direct_string = convert_to_markdown(obj, return_string=True)
-            
+
             # Both should be strings and contain key elements
             assert isinstance(structured_string, str)
             assert isinstance(direct_string, str)
-            
+
             # Should contain the object name/title
-            obj_name = getattr(obj, '__name__', obj.__class__.__name__)
+            obj_name = getattr(obj, "__name__", obj.__class__.__name__)
             assert obj_name in structured_string
             assert obj_name in direct_string
 
@@ -411,14 +436,18 @@ class TestBackwardCompatibility:
             {"bullet_style": "*"},
             {"title_level": "h2"},
         ]
-        
+
         instance = SampleDataclass(name="Test", age=25)
-        
+
         for settings in settings_to_test:
             # Both modes should work without errors
-            structured = convert_dataclass_to_markdown(instance, {**settings, "return_string": False})
-            string_result = convert_dataclass_to_markdown(instance, {**settings, "return_string": True})
-            
+            structured = convert_dataclass_to_markdown(
+                instance, {**settings, "return_string": False}
+            )
+            string_result = convert_dataclass_to_markdown(
+                instance, {**settings, "return_string": True}
+            )
+
             assert isinstance(structured, Markdown)
             assert isinstance(string_result, str)
 

@@ -5,16 +5,7 @@ Contains various resources for converting different
 filetypes and data types into markdown strings.
 """
 
-from typing import (
-    Any,
-    List,
-    Union,
-    Literal,
-    Callable,
-    Optional,
-    get_args,
-    Dict,
-)
+from typing import Any, List, Union, Literal, Callable, Optional, get_args, Dict, Self
 from inspect import getdoc
 from dataclasses import fields as dataclass_fields, is_dataclass, MISSING
 from typing_extensions import TypedDict
@@ -66,16 +57,92 @@ class Markdown(BaseModel):
     sections: List[MarkdownSection] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+    @classmethod
+    def convert(
+        cls,
+        target: Any,
+        indent: int = 0,
+        split: bool = False,
+        exclude: Optional[List[str]] = None,
+        as_code_block: bool = False,
+        as_natural_language: bool = False,
+        show_schema: bool = False,
+        show_field_descriptions: bool = True,
+        show_types: bool = True,
+        show_values: bool = True,
+        show_defaults: bool = True,
+        show_title: bool = True,
+        show_bullets: bool = True,
+        show_docs: bool = True,
+        bullet_style: str = "-",
+        title_level: Literal["h1", "h2", "h3", "bold"] = "h1",
+        code_block_language: str | None = None,
+        show_header: bool = True,
+        override_title: str | None = None,
+        override_description: str | None = None,
+    ) -> Self:
+        """
+        Converts a target object into a Markdown model.
+
+        Args:
+            target: Any - The target object to convert to markdown.
+            split: bool - Whether to split the markdown into multiple parts. (Each field will be a subheading)
+            indent: int - The number of spaces to indent the markdown.
+            exclude: Optional[List[str]] - A list of field names to exclude from the markdown.
+            as_code_block: bool - Whether to render the markdown as a code block.
+            as_natural_language: bool - Whether to render the markdown as natural language.
+            show_schema: bool - Whether to show the schema of the target object.
+            show_field_descriptions: bool - Whether to show the field descriptions of the target object.
+            show_types: bool - Whether to show the types of the target object.
+            show_values: bool - Whether to show the values of the target object.
+            show_defaults: bool - Whether to show the default values of the target object.
+            show_title: bool - Whether to show the title of the target object.
+            show_bullets: bool - Whether to show bullets in the markdown.
+            show_docs: bool - Whether to show the docs of the target object.
+            bullet_style: str - The style of the bullets in the markdown.
+            title_level: Literal["h1", "h2", "h3", "bold"] - The level of the title in the markdown.
+            code_block_language: Optional[str] - The language of the code block in the markdown.
+            show_header: bool - Whether to show the header of the target object.
+            override_title: Optional[str] - The title to use for the target object.
+            override_description: Optional[str] - The description to use for the target object.
+
+        Returns:
+            Markdown - A Markdown model.
+        """
+        return convert_to_markdown(
+            target,
+            indent=indent,
+            split=split,
+            exclude=exclude,
+            as_code_block=as_code_block,
+            as_natural_language=as_natural_language,
+            show_schema=show_schema,
+            show_field_descriptions=show_field_descriptions,
+            show_types=show_types,
+            show_values=show_values,
+            show_defaults=show_defaults,
+            show_title=show_title,
+            show_bullets=show_bullets,
+            show_docs=show_docs,
+            bullet_style=bullet_style,
+            title_level=title_level,
+            code_block_language=code_block_language,
+            show_header=show_header,
+            override_title=override_title,
+            override_description=override_description,
+            return_string=False,
+        )
+
     def to_string(
-            self, 
-            indent: int = 0, 
-            show_bullets: bool = True, 
-            bullet_style: str = "-", 
-            title_level: Literal["h1", "h2", "h3", "bold"] = "h1",
-        ) -> str:
+        self,
+        indent: int = 0,
+        show_bullets: bool = True,
+        bullet_style: str = "-",
+        title_level: Literal["h1", "h2", "h3", "bold"] = "h1",
+    ) -> str:
         """
         Convert the structured markdown back to a string representation.
-        
+
         Args:
             indent: Number of spaces to indent
             show_bullets: Whether to show bullets for list items
@@ -85,7 +152,7 @@ class Markdown(BaseModel):
         parts = []
         prefix = "  " * indent
         bullet = f"{bullet_style} " if show_bullets else ""
-        
+
         # Add title with appropriate level
         if self.title:
             if title_level == "h1":
@@ -98,9 +165,9 @@ class Markdown(BaseModel):
                 title_md = f"**{self.title}**"
             else:
                 title_md = f"# {self.title}"
-            
+
             parts.append(f"{prefix}{title_md}")
-        
+
         # Add description
         if self.description:
             # Format description with italic for docstrings
@@ -108,7 +175,7 @@ class Markdown(BaseModel):
                 parts.append(f"{prefix}  _{self.description}_")
             else:
                 parts.append(f"{prefix}  {self.description}")
-        
+
         # Add sections
         for section in self.sections:
             if section.heading:
@@ -129,14 +196,14 @@ class Markdown(BaseModel):
                     heading_md = f"**{section.heading}**"
                 else:
                     heading_md = f"## {section.heading}"
-                
+
                 parts.append(f"{prefix}{heading_md}")
-            
+
             if section.content:
                 # Handle different section types
                 if section.section_type == "field" and show_bullets:
                     # For field sections, add bullet point if not already present
-                    content_lines = section.content.split('\n')
+                    content_lines = section.content.split("\n")
                     for i, line in enumerate(content_lines):
                         if line.strip():  # Skip empty lines
                             if i == 0 and not line.strip().startswith(bullet_style):
@@ -145,36 +212,40 @@ class Markdown(BaseModel):
                                 parts.append(f"{prefix}{line}")
                 elif section.section_type in ["parameters", "raises"]:
                     # These already have bullet points in content
-                    content_lines = section.content.split('\n')
+                    content_lines = section.content.split("\n")
                     for line in content_lines:
                         if line.strip():
                             parts.append(f"{prefix}  {line}")
                 elif section.section_type == "docstring":
                     # Format docstring content in italics
-                    content_lines = section.content.split('\n')
+                    content_lines = section.content.split("\n")
                     for line in content_lines:
                         if line.strip():
                             parts.append(f"{prefix}  _{line.strip()}_")
                 elif section.section_type == "natural_language":
                     # Natural language already formatted
-                    content_lines = section.content.split('\n')
+                    content_lines = section.content.split("\n")
                     for line in content_lines:
                         if line.strip():
                             parts.append(f"{prefix}{line}")
                 else:
                     # Regular content (collections, attributes, etc.)
-                    content_lines = section.content.split('\n')
+                    content_lines = section.content.split("\n")
                     for line in content_lines:
                         if line.strip():
-                            if section.section_type in ["collection", "dictionary", "attributes", "value"] and show_bullets:
+                            if (
+                                section.section_type
+                                in ["collection", "dictionary", "attributes", "value"]
+                                and show_bullets
+                            ):
                                 if not line.strip().startswith(bullet_style):
                                     parts.append(f"{prefix}{bullet}{line.strip()}")
                                 else:
                                     parts.append(f"{prefix}{line}")
                             else:
                                 parts.append(f"{prefix}{line}")
-        
-        return '\n'.join(parts)
+
+        return "\n".join(parts)
 
 
 # ------------------------------------------------------------------------------
@@ -548,7 +619,7 @@ def convert_function_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
         return f"```{lang}\n{string_result}\n```"
 
@@ -558,7 +629,7 @@ def convert_function_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
 
     return markdown
@@ -581,11 +652,11 @@ def convert_dataclass_to_markdown(
     class_name = target.__name__ if is_class else target.__class__.__name__
 
     title = settings.get("override_title") or class_name
-    
+
     # Create the markdown object
     markdown = Markdown(
         title=title if settings.get("show_title", True) else None,
-        metadata={"class_name": class_name, "type": "dataclass", "is_class": is_class}
+        metadata={"class_name": class_name, "type": "dataclass", "is_class": is_class},
     )
 
     # Add docstring as description
@@ -595,16 +666,18 @@ def convert_dataclass_to_markdown(
         if doc_dict:
             doc_dict_filtered = doc_dict.copy()
             doc_dict_filtered.pop("params", None)  # Remove params for class docs
-            
+
             if doc_dict_filtered.get("short"):
                 markdown.description = doc_dict_filtered["short"]
-            
+
             if doc_dict_filtered.get("long"):
-                markdown.sections.append(MarkdownSection(
-                    content=doc_dict_filtered["long"],
-                    section_type="docstring",
-                    level="h3"
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content=doc_dict_filtered["long"],
+                        section_type="docstring",
+                        level="h3",
+                    )
+                )
 
     # Handle fields
     fields_list = dataclass_fields(target)
@@ -613,19 +686,27 @@ def convert_dataclass_to_markdown(
     if settings.get("as_natural_language", False):
         # Natural language format - create a single section
         if not is_class:
-            content_lines = [f"{class_name} is currently set with the following values:"]
+            content_lines = [
+                f"{class_name} is currently set with the following values:"
+            ]
             for field in fields_list:
                 if field.name in exclude:
                     continue
                 value = getattr(target, field.name)
-                type_name = convert_type_to_markdown(field.type).replace("_", " ").lower()
-                content_lines.append(f"- {field.name.title()} (A {type_name}) is defined as {repr(value)}")
-            
-            markdown.sections.append(MarkdownSection(
-                content="\n".join(content_lines),
-                section_type="natural_language",
-                level="h3"
-            ))
+                type_name = (
+                    convert_type_to_markdown(field.type).replace("_", " ").lower()
+                )
+                content_lines.append(
+                    f"- {field.name.title()} (A {type_name}) is defined as {repr(value)}"
+                )
+
+            markdown.sections.append(
+                MarkdownSection(
+                    content="\n".join(content_lines),
+                    section_type="natural_language",
+                    level="h3",
+                )
+            )
     else:
         # Standard format - each field as a section or content
         for field in fields_list:
@@ -644,7 +725,7 @@ def convert_dataclass_to_markdown(
                     field_level = "h4"
 
                 field_content = []
-                
+
                 # Add type information
                 if settings.get("show_types", True):
                     type_name = convert_type_to_markdown(field.type)
@@ -666,17 +747,24 @@ def convert_dataclass_to_markdown(
                     and field.default is not MISSING
                 ):
                     if field.default_factory is not MISSING:
-                        field_content.append(f"**Default:** `{field.default_factory()}`")
+                        field_content.append(
+                            f"**Default:** `{field.default_factory()}`"
+                        )
                     else:
                         field_content.append(f"**Default:** `{repr(field.default)}`")
 
-                markdown.sections.append(MarkdownSection(
-                    heading=field.name,
-                    content="\n".join(field_content),
-                    section_type="field",
-                    level=field_level,
-                    metadata={"field_name": field.name, "field_type": str(field.type)}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        heading=field.name,
+                        content="\n".join(field_content),
+                        section_type="field",
+                        level=field_level,
+                        metadata={
+                            "field_name": field.name,
+                            "field_type": str(field.type),
+                        },
+                    )
+                )
             else:
                 # Standard bullet format - create field sections
                 field_parts = [field.name]
@@ -705,12 +793,17 @@ def convert_dataclass_to_markdown(
                     if field_desc:
                         field_parts.append(f"  # {field_desc}")
 
-                markdown.sections.append(MarkdownSection(
-                    content="".join(field_parts),
-                    section_type="field",
-                    level="h3",
-                    metadata={"field_name": field.name, "field_type": str(field.type)}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content="".join(field_parts),
+                        section_type="field",
+                        level="h3",
+                        metadata={
+                            "field_name": field.name,
+                            "field_type": str(field.type),
+                        },
+                    )
+                )
 
     # Handle code block wrapping
     if settings.get("as_code_block", False):
@@ -719,7 +812,7 @@ def convert_dataclass_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
         return f"```{lang}\n{string_result}\n```"
 
@@ -729,9 +822,9 @@ def convert_dataclass_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
-    
+
     return markdown
 
 
@@ -755,11 +848,15 @@ def convert_pydantic_model_to_markdown(
     model_name = target.__name__ if is_class else target.__class__.__name__
 
     title = settings.get("override_title") or model_name
-    
+
     # Create the markdown object
     markdown = Markdown(
         title=title if settings.get("show_title", True) else None,
-        metadata={"model_name": model_name, "type": "pydantic_model", "is_class": is_class}
+        metadata={
+            "model_name": model_name,
+            "type": "pydantic_model",
+            "is_class": is_class,
+        },
     )
 
     # Add docstring as description
@@ -769,27 +866,29 @@ def convert_pydantic_model_to_markdown(
         if doc_dict:
             doc_dict_filtered = doc_dict.copy()
             doc_dict_filtered.pop("params", None)  # Remove params for class docs
-            
+
             if doc_dict_filtered.get("short"):
                 markdown.description = doc_dict_filtered["short"]
-            
+
             if doc_dict_filtered.get("long"):
-                markdown.sections.append(MarkdownSection(
-                    content=doc_dict_filtered["long"],
-                    section_type="docstring",
-                    level="h3"
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content=doc_dict_filtered["long"],
+                        section_type="docstring",
+                        level="h3",
+                    )
+                )
 
     # Handle fields
-    model_fields = (
-        target.model_fields if is_class else target.__class__.model_fields
-    )
+    model_fields = target.model_fields if is_class else target.__class__.model_fields
     exclude = settings.get("exclude", []) or []
 
     if settings.get("as_natural_language", False):
         # Natural language format - create a single section
         if not is_class:
-            content_lines = [f"{model_name} is currently set with the following values:"]
+            content_lines = [
+                f"{model_name} is currently set with the following values:"
+            ]
             for field_name, field_info in model_fields.items():
                 if field_name in exclude:
                     continue
@@ -799,13 +898,17 @@ def convert_pydantic_model_to_markdown(
                     .replace("_", " ")
                     .lower()
                 )
-                content_lines.append(f"- {field_name.title()} (A {type_name}) is defined as {repr(value)}")
-            
-            markdown.sections.append(MarkdownSection(
-                content="\n".join(content_lines),
-                section_type="natural_language",
-                level="h3"
-            ))
+                content_lines.append(
+                    f"- {field_name.title()} (A {type_name}) is defined as {repr(value)}"
+                )
+
+            markdown.sections.append(
+                MarkdownSection(
+                    content="\n".join(content_lines),
+                    section_type="natural_language",
+                    level="h3",
+                )
+            )
     else:
         # Standard format - each field as a section or content
         for field_name, field_info in model_fields.items():
@@ -824,7 +927,7 @@ def convert_pydantic_model_to_markdown(
                     field_level = "h4"
 
                 field_content = []
-                
+
                 # Add type information
                 if settings.get("show_types", True):
                     type_name = convert_type_to_markdown(field_info.annotation)
@@ -841,7 +944,8 @@ def convert_pydantic_model_to_markdown(
                     value = getattr(target, field_name)
                     field_content.append(f"**Value:** `{repr(value)}`")
                 elif (
-                    settings.get("show_defaults", True) and field_info.default is not None
+                    settings.get("show_defaults", True)
+                    and field_info.default is not None
                 ):
                     field_content.append(f"**Default:** `{repr(field_info.default)}`")
                 elif (
@@ -849,15 +953,22 @@ def convert_pydantic_model_to_markdown(
                     and hasattr(field_info, "default_factory")
                     and field_info.default_factory is not None
                 ):
-                    field_content.append(f"**Default:** `{field_info.default_factory()}`")
+                    field_content.append(
+                        f"**Default:** `{field_info.default_factory()}`"
+                    )
 
-                markdown.sections.append(MarkdownSection(
-                    heading=field_name,
-                    content="\n".join(field_content),
-                    section_type="field",
-                    level=field_level,
-                    metadata={"field_name": field_name, "field_type": str(field_info.annotation)}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        heading=field_name,
+                        content="\n".join(field_content),
+                        section_type="field",
+                        level=field_level,
+                        metadata={
+                            "field_name": field_name,
+                            "field_type": str(field_info.annotation),
+                        },
+                    )
+                )
             else:
                 # Standard bullet format - create field sections
                 field_parts = [field_name]
@@ -871,7 +982,8 @@ def convert_pydantic_model_to_markdown(
                     value = getattr(target, field_name)
                     field_parts.append(f" = {repr(value)}")
                 elif (
-                    settings.get("show_defaults", True) and field_info.default is not None
+                    settings.get("show_defaults", True)
+                    and field_info.default is not None
                 ):
                     field_parts.append(f" = {repr(field_info.default)}")
                 elif (
@@ -887,12 +999,17 @@ def convert_pydantic_model_to_markdown(
                     if field_desc:
                         field_parts.append(f"  # {field_desc}")
 
-                markdown.sections.append(MarkdownSection(
-                    content="".join(field_parts),
-                    section_type="field",
-                    level="h3",
-                    metadata={"field_name": field_name, "field_type": str(field_info.annotation)}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content="".join(field_parts),
+                        section_type="field",
+                        level="h3",
+                        metadata={
+                            "field_name": field_name,
+                            "field_type": str(field_info.annotation),
+                        },
+                    )
+                )
 
     # Handle code block wrapping
     if settings.get("as_code_block", False):
@@ -901,7 +1018,7 @@ def convert_pydantic_model_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
         return f"```{lang}\n{string_result}\n```"
 
@@ -911,9 +1028,9 @@ def convert_pydantic_model_to_markdown(
             indent=settings.get("indent", 0),
             show_bullets=settings.get("show_bullets", True),
             bullet_style=settings.get("bullet_style", "-"),
-            title_level=settings.get("title_level", "h1")
+            title_level=settings.get("title_level", "h1"),
         )
-    
+
     return markdown
 
 
@@ -944,11 +1061,11 @@ def convert_object_to_markdown(
         )
 
         title = settings.get("override_title") or obj_name
-        
+
         # Create the markdown object
         markdown = Markdown(
             title=title if settings.get("show_title", True) else None,
-            metadata={"object_name": obj_name, "type": "generic_object"}
+            metadata={"object_name": obj_name, "type": "generic_object"},
         )
 
         # Handle different object types
@@ -957,39 +1074,53 @@ def convert_object_to_markdown(
                 content_lines = []
                 for i, item in enumerate(target):
                     content_lines.append(f"Item {i}: {repr(item)}")
-                
-                markdown.sections.append(MarkdownSection(
-                    content="\n".join(content_lines),
-                    section_type="collection",
-                    level="h3",
-                    metadata={"collection_type": type(target).__name__, "length": len(target)}
-                ))
+
+                markdown.sections.append(
+                    MarkdownSection(
+                        content="\n".join(content_lines),
+                        section_type="collection",
+                        level="h3",
+                        metadata={
+                            "collection_type": type(target).__name__,
+                            "length": len(target),
+                        },
+                    )
+                )
             else:
-                markdown.sections.append(MarkdownSection(
-                    content=f"Empty {obj_name.lower()}",
-                    section_type="collection",
-                    level="h3",
-                    metadata={"collection_type": type(target).__name__, "length": 0}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content=f"Empty {obj_name.lower()}",
+                        section_type="collection",
+                        level="h3",
+                        metadata={
+                            "collection_type": type(target).__name__,
+                            "length": 0,
+                        },
+                    )
+                )
         elif isinstance(target, dict):
             if target:
                 content_lines = []
                 for key, value in target.items():
                     content_lines.append(f"{key}: {repr(value)}")
-                
-                markdown.sections.append(MarkdownSection(
-                    content="\n".join(content_lines),
-                    section_type="dictionary",
-                    level="h3",
-                    metadata={"dict_size": len(target)}
-                ))
+
+                markdown.sections.append(
+                    MarkdownSection(
+                        content="\n".join(content_lines),
+                        section_type="dictionary",
+                        level="h3",
+                        metadata={"dict_size": len(target)},
+                    )
+                )
             else:
-                markdown.sections.append(MarkdownSection(
-                    content="Empty dictionary",
-                    section_type="dictionary",
-                    level="h3",
-                    metadata={"dict_size": 0}
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content="Empty dictionary",
+                        section_type="dictionary",
+                        level="h3",
+                        metadata={"dict_size": 0},
+                    )
+                )
         else:
             # Generic object - try to get attributes
             if hasattr(target, "__dict__"):
@@ -997,20 +1128,24 @@ def convert_object_to_markdown(
                 for attr_name, attr_value in target.__dict__.items():
                     if not attr_name.startswith("_"):  # Skip private attributes
                         content_lines.append(f"{attr_name}: {repr(attr_value)}")
-                
+
                 if content_lines:
-                    markdown.sections.append(MarkdownSection(
-                        content="\n".join(content_lines),
-                        section_type="attributes",
-                        level="h3",
-                        metadata={"attribute_count": len(content_lines)}
-                    ))
+                    markdown.sections.append(
+                        MarkdownSection(
+                            content="\n".join(content_lines),
+                            section_type="attributes",
+                            level="h3",
+                            metadata={"attribute_count": len(content_lines)},
+                        )
+                    )
             else:
-                markdown.sections.append(MarkdownSection(
-                    content=f"Value: {repr(target)}",
-                    section_type="value",
-                    level="h3"
-                ))
+                markdown.sections.append(
+                    MarkdownSection(
+                        content=f"Value: {repr(target)}",
+                        section_type="value",
+                        level="h3",
+                    )
+                )
 
         # Handle code block wrapping
         if settings.get("as_code_block", False):
@@ -1019,7 +1154,7 @@ def convert_object_to_markdown(
                 indent=settings.get("indent", 0),
                 show_bullets=settings.get("show_bullets", True),
                 bullet_style=settings.get("bullet_style", "-"),
-                title_level=settings.get("title_level", "h1")
+                title_level=settings.get("title_level", "h1"),
             )
             return f"```{lang}\n{string_result}\n```"
 
@@ -1029,9 +1164,9 @@ def convert_object_to_markdown(
                 indent=settings.get("indent", 0),
                 show_bullets=settings.get("show_bullets", True),
                 bullet_style=settings.get("bullet_style", "-"),
-                title_level=settings.get("title_level", "h1")
+                title_level=settings.get("title_level", "h1"),
             )
-        
+
         return markdown
 
 
@@ -1083,7 +1218,7 @@ def convert_to_markdown(
         override_title: Optional[str] - The title to use for the target object.
         override_description: Optional[str] - The description to use for the target object.
         return_string: bool - Whether to return a string instead of a Markdown model. Defaults to False.
-        
+
     Returns:
         Union[str, Markdown] - A markdown string if return_string=True, otherwise a Markdown model.
     """
