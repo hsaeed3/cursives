@@ -98,7 +98,7 @@ def extract_function_fields(func: Callable) -> Dict[str, Any]:
 
 __all__ = [
     "create_pydantic_model",
-    "create_selection_pydantic_model", 
+    "create_selection_pydantic_model",
     "create_confirmation_pydantic_model",
     "convert_type_to_pydantic_field",
 ]
@@ -158,6 +158,7 @@ def convert_type_to_pydantic_field(
 # Dispatched create_pydantic_model implementations
 # ============================================================================
 
+
 @dispatch.abstract
 def create_pydantic_model(
     target: Union[Type, Sequence[Type], Dict[str, Any], BaseModel, Callable],
@@ -193,19 +194,24 @@ def create_pydantic_model(
     default: Any = ...,
 ) -> Union[Type[BaseModel], BaseModel]:
     """Handle single types and BaseModel subclasses."""
-    
+
     @cached(
-        lambda target, init=False, name=None, description=None, field_name=None, default=...: make_hashable(
+        lambda target,
+        init=False,
+        name=None,
+        description=None,
+        field_name=None,
+        default=...: make_hashable(
             (target, init, name, description, field_name, default)
         )
     )
     def _create_from_type(target, init, name, description, field_name, default):
         model_name = name or "GeneratedModel"
-        
+
         # Handle existing Pydantic models
         if issubclass(target, BaseModel):
             return target
-            
+
         # Handle dataclasses
         if is_dataclass(target):
             hints = get_type_hints(target)
@@ -248,7 +254,10 @@ def create_pydantic_model(
                 return model_class
             elif init:
                 return model_class(
-                    **{field_name_dc: getattr(target, field_name_dc) for field_name_dc in hints}
+                    **{
+                        field_name_dc: getattr(target, field_name_dc)
+                        for field_name_dc in hints
+                    }
                 )
             return model_class
 
@@ -262,7 +271,7 @@ def create_pydantic_model(
             _, field_value = next(iter(field_mapping.items()))
             field_mapping = {field_name: field_value}
         return create_model(model_name, __doc__=description, **field_mapping)
-    
+
     return _create_from_type(target, init, name, description, field_name, default)
 
 
@@ -276,17 +285,24 @@ def create_pydantic_model(
     default: Any = ...,
 ) -> Union[Type[BaseModel], BaseModel]:
     """Handle callable (functions)."""
-    
+
     @cached(
-        lambda target, init=False, name=None, description=None, field_name=None, default=...: make_hashable(
+        lambda target,
+        init=False,
+        name=None,
+        description=None,
+        field_name=None,
+        default=...: make_hashable(
             (target, init, name, description, field_name, default)
         )
     )
     def _create_from_callable(target, init, name, description, field_name, default):
         # Skip if it's a type constructor
         if isinstance(target, type):
-            return create_pydantic_model(target, init, name, description, field_name, default)
-            
+            return create_pydantic_model(
+                target, init, name, description, field_name, default
+            )
+
         fields = extract_function_fields(target)
 
         # Extract just the short description from the docstring
@@ -298,7 +314,7 @@ def create_pydantic_model(
             __doc__=description or clean_description,
             **fields,
         )
-    
+
     return _create_from_callable(target, init, name, description, field_name, default)
 
 
@@ -312,16 +328,21 @@ def create_pydantic_model(
     default: Any = ...,
 ) -> Union[Type[BaseModel], BaseModel]:
     """Handle sequences of types."""
-    
+
     @cached(
-        lambda target, init=False, name=None, description=None, field_name=None, default=...: make_hashable(
+        lambda target,
+        init=False,
+        name=None,
+        description=None,
+        field_name=None,
+        default=...: make_hashable(
             (tuple(target), init, name, description, field_name, default)
         )
     )
     def _create_from_sequence(target, init, name, description, field_name, default):
         model_name = name or "GeneratedModel"
         field_mapping = {}
-        
+
         for i, type_hint in enumerate(target):
             if not isinstance(type_hint, type):
                 raise ValueError("Sequence elements must be types")
@@ -333,25 +354,17 @@ def create_pydantic_model(
                             type_hint,
                             description=description,
                             default=default,
-                        )[
-                            next(
-                                iter(
-                                    convert_type_to_pydantic_field(type_hint).keys()
-                                )
-                            )
-                        ]
+                        )[next(iter(convert_type_to_pydantic_field(type_hint).keys()))]
                     }
                 )
             else:
-                field_mapping.update(
-                    convert_type_to_pydantic_field(type_hint, index=i)
-                )
+                field_mapping.update(convert_type_to_pydantic_field(type_hint, index=i))
         return create_model(model_name, __doc__=description, **field_mapping)
-    
+
     return _create_from_sequence(target, init, name, description, field_name, default)
 
 
-@dispatch  
+@dispatch
 def create_pydantic_model(
     target: dict,
     init: bool = False,
@@ -361,15 +374,27 @@ def create_pydantic_model(
     default: Any = ...,
 ) -> Union[Type[BaseModel], BaseModel]:
     """Handle dictionaries."""
-    
+
     @cached(
-        lambda target, init=False, name=None, description=None, field_name=None, default=...: make_hashable(
-            (tuple(sorted(target.items())), init, name, description, field_name, default)
+        lambda target,
+        init=False,
+        name=None,
+        description=None,
+        field_name=None,
+        default=...: make_hashable(
+            (
+                tuple(sorted(target.items())),
+                init,
+                name,
+                description,
+                field_name,
+                default,
+            )
         )
     )
     def _create_from_dict(target, init, name, description, field_name, default):
         model_name = name or "GeneratedModel"
-        
+
         if init:
             model_class = create_model(
                 model_name,
@@ -378,11 +403,9 @@ def create_pydantic_model(
             )
             return model_class(**target)
         # Create proper field definitions from dict values
-        field_mapping = {
-            k: (type(v), Field(default=...)) for k, v in target.items()
-        }
+        field_mapping = {k: (type(v), Field(default=...)) for k, v in target.items()}
         return create_model(model_name, __doc__=description, **field_mapping)
-    
+
     return _create_from_dict(target, init, name, description, field_name, default)
 
 
@@ -396,15 +419,28 @@ def create_pydantic_model(
     default: Any = ...,
 ) -> Union[Type[BaseModel], BaseModel]:
     """Handle model instances."""
-    
+
     @cached(
-        lambda target, init=False, name=None, description=None, field_name=None, default=...: make_hashable(
-            (target.__class__, tuple(sorted(target.model_dump().items())), init, name, description, field_name, default)
+        lambda target,
+        init=False,
+        name=None,
+        description=None,
+        field_name=None,
+        default=...: make_hashable(
+            (
+                target.__class__,
+                tuple(sorted(target.model_dump().items())),
+                init,
+                name,
+                description,
+                field_name,
+                default,
+            )
         )
     )
     def _create_from_instance(target, init, name, description, field_name, default):
         model_name = name or "GeneratedModel"
-        
+
         # Parse docstring from the model's class
         docstring = target.__class__.__doc__
         doc_info = None
@@ -433,7 +469,7 @@ def create_pydantic_model(
             )
             return model_class(**target.model_dump())
         return target.__class__
-    
+
     return _create_from_instance(target, init, name, description, field_name, default)
 
 
