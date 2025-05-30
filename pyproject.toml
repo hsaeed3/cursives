@@ -1,0 +1,69 @@
+[project]
+# ------------------------------------------------------------------------
+# Base Metadata
+# ------------------------------------------------------------------------
+
+name = "cursives"
+version = "0.0.01"
+
+description = """
+Very, VERY opinionated resources to make things pretty in Python. Made for neat folks.
+"""
+authors = [
+    { name = "Hammad Saeed", email = "hvmmad@gmail.com" }
+]
+
+readme = "README.md"
+license = { file = "LICENSE" }
+
+requires-python = ">=3.10"
+
+dependencies = [
+]
+
+# CLI entry points
+[project.scripts]
+cursives = "cursives.cli:app"
+
+
+[dependency-groups]
+dev = [
+    # core dev tools
+    # i love astral.sh
+    "ruff",
+    "uv",
+    "rich", 
+    "twine",
+    # tests
+    "pytest",
+    "pytest-asyncio",
+]
+
+
+# ------------------------------------------------------------------------
+# Build System & Tools (Hatch specific)
+# ------------------------------------------------------------------------
+
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["cursives"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+# exclude docs/ dir
+[tool.hatch.build]
+exclude = ["docs/"]
