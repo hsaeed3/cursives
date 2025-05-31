@@ -1,8 +1,10 @@
 """
-cursives.utils._cache
+cursives.`utils._cache`
 
+```markdown
 Contains resources that are used within `cursives` for caching
 purposes.
+```
 """
 
 import hashlib
